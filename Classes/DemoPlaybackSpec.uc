@@ -65,6 +65,9 @@ var vector LocationBeforeProjectileLock;
 // (Sp0ngeb0b) Speedup acceleration factor
 var float AccelFactor;
 
+// (Sp0ngeb0b) Block messages?
+var bool bHideMessages;
+
 //garf interpolation code:
 var float timepassed, totaltimeR, predictiontime;
 var rotator lastrotation, realtargetrotation;
@@ -345,6 +348,20 @@ exec function SetAccel(float value) {
 		WaterSpeed   = Default.WaterSpeed * value;
 		AirSpeed     = Default.AirSpeed * value;
 		AccelFactor  = value; 
+}
+
+// =============================================================================
+// (Added by Sp0ngeb0b) SetAccel ~ Hides messages from blocked list.
+// =============================================================================
+exec function HideMessages() { 
+		bHideMessages = true;
+}
+
+// =============================================================================
+// (Added by Sp0ngeb0b) SetAccel ~ Shows all messages.
+// =============================================================================
+exec function ShowMessages() { 
+		bHideMessages = false;
 }
 
 // For some weird reason, the original FixFOV sets it to 90 sometimes, wtf is the purpose of that?

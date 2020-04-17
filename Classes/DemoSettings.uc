@@ -41,6 +41,18 @@ var config float CacheSeconds; //amount of seconds to cache for when jumping (i.
 var config float TickSize; //how big the update tick should be during cache... (i.e. tick by this deltatime.. lower=more accurate)
 var config bool InterpolateView; //if garfield's interpolation rotator thing should be used in 1st person view
 
+// (added by Sp0ngeb0b)
+var config class<LocalMessage> BlockedMessageClasses[16];
+
+static function bool isBlockedMessageClass(class<LocalMessage> Message) {
+  local int i;
+  
+  for(i=0; i<ArrayCount(default.BlockedMessageClasses) && default.BlockedMessageClasses[i] != none; i++) {
+    if(ClassIsChildOf(Message, default.BlockedMessageClasses[i])) return true;
+  }
+  return false;
+}
+
 //functions for easy reading:
 static function int ReDirectIndex (String ServerURL){
   local int i;
@@ -251,4 +263,6 @@ defaultproperties {
   DownloadType=1
   InterpolateView=true
   RedirectServers(0)="uz.ut-files.com"
+  BlockedMessageClasses(0)=class'StringMessagePlus'
+  BlockedMessageClasses(1)=class'DeathMessagePlus'
 }
