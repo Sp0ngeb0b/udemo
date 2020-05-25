@@ -68,6 +68,9 @@ var float AccelFactor;
 // (Sp0ngeb0b) Block messages?
 var bool bHideMessages;
 
+var ShockBeam SBSaved;
+var int tickAmount;
+
 //garf interpolation code:
 var float timepassed, totaltimeR, predictiontime;
 var rotator lastrotation, realtargetrotation;
@@ -588,7 +591,12 @@ state CheatFlying
     {
         local PlayerReplicationInfo PRI;
         local int i, FragAcc;
-
+        local ShockBeam SB;
+        local Rotator ZeroRot;
+        local ut_ComboRing CR;
+        local ut_RingExplosion RE;
+        local ut_RingExplosion3 RE3;
+        
         if (SeekTick==3)
             EndSeek();
         if (bSeeking)
@@ -641,6 +649,25 @@ state CheatFlying
         else if (PlayerLinked == None && HudType==none)
             GenRef();
 
+        if(PlayerLinked != none) {
+          if(SBSaved == none) {
+            forEach RadiusActors(Class'ShockBeam', SB, 1024.0, PlayerLinked.Location) {
+              if(SB.Rotation == ZeroRot) {
+                SB.Rotation = PlayerLinked.Rotation;
+                SB.Texture=Texture'Botpack.Effects.jenergy3';
+                
+                if(!findDestination(SB)) SBSaved = SB;
+              } 
+            }
+          } else {
+            findDestination(SBSaved);
+            if(++tickAmount > 0) {
+              SBSaved = none;
+              tickAmount = 0;
+            }
+          }
+        }
+
     }
     
     // (Sp0ngeb0b)
@@ -656,6 +683,59 @@ state CheatFlying
     {
       AccelFactor = 1.0;
       super.BeginState();
+    }
+    
+    // Locate destination of shockbeam
+    function bool findDestination(ShockBeam SB) {
+      local Vector REVec, DVec, EpsVec;
+      local ut_RingExplosion5 RE;
+      local ut_ComboRing CR;
+      local ShockProj SP;
+      local int NumPoints;
+        
+      // Normal Primary
+      forEach AllActors(Class'ut_RingExplosion5', RE) {
+        REVec  = RE.Location-PlayerLinked.Location;
+        DVec   = PlayerLinked.Location + vector(PlayerLinked.Rotation) * VSize(REVec);
+        EpsVec = DVec-RE.Location;
+        if(abs(EpsVec.X) < 100 && abs(EpsVec.Y) < 100 && abs(EpsVec.Z) < 100) {
+          NumPoints = VSize(REVec)/135.0;
+          if ( NumPoints < 1 ) return false;
+          SB.MoveAmount = REVec / NumPoints;
+          SB.NumPuffs = NumPoints - 1;	                  
+          return true;
+        }
+      }
+      
+      // Combo on ball?
+      forEach Level.AllActors(Class'ShockProj', SP) {
+        REVec  = SP.Location-PlayerLinked.Location;
+        DVec   = PlayerLinked.Location + vector(PlayerLinked.Rotation) * VSize(REVec);
+        EpsVec = DVec-SP.Location;
+        if(abs(EpsVec.X) < 100 && abs(EpsVec.Y) < 100 && abs(EpsVec.Z) < 100) {
+          NumPoints = VSize(REVec)/135.0;
+          if ( NumPoints < 1 ) return false;
+          SB.MoveAmount = REVec / NumPoints;
+          SB.NumPuffs = NumPoints - 1;	   
+          return true;
+        }
+      }   
+      
+      // Combo other?
+      forEach Level.AllActors(Class'ut_ComboRing', CR) {
+        REVec  = CR.Location-PlayerLinked.Location;
+        DVec   = PlayerLinked.Location + vector(PlayerLinked.Rotation) * VSize(REVec);
+        EpsVec = DVec-CR.Location;
+        if(abs(EpsVec.X) < 100 && abs(EpsVec.Y) < 100 && abs(EpsVec.Z) < 100) {
+          NumPoints = VSize(REVec)/135.0;
+          if ( NumPoints < 1 ) return false;
+          SB.MoveAmount = REVec / NumPoints;
+          SB.NumPuffs = NumPoints - 1;	   
+          return true;
+        }
+      }  
+    
+      return false;
     }
 }
 

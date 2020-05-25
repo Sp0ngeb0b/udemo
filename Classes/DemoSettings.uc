@@ -42,13 +42,13 @@ var config float TickSize; //how big the update tick should be during cache... (
 var config bool InterpolateView; //if garfield's interpolation rotator thing should be used in 1st person view
 
 // (added by Sp0ngeb0b)
-var config class<LocalMessage> BlockedMessageClasses[16];
+var config string BlockedMessageClasses[16];
 
 static function bool isBlockedMessageClass(class<LocalMessage> Message) {
   local int i;
   
-  for(i=0; i<ArrayCount(default.BlockedMessageClasses) && default.BlockedMessageClasses[i] != none; i++) {
-    if(ClassIsChildOf(Message, default.BlockedMessageClasses[i])) return true;
+  for(i=0; i<ArrayCount(default.BlockedMessageClasses) && default.BlockedMessageClasses[i] != ""; i++) {
+    if(ClassIsChildOf(Message, class<LocalMessage>(DynamicLoadObject(default.BlockedMessageClasses[i], class'class')))) return true;
   }
   return false;
 }
