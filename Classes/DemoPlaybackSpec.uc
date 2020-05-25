@@ -58,6 +58,17 @@ var float oldltsoffset;
 var Actor OldViewTarget;
 var bool bWasZooming;
 
+
+
+// (Sp0ngeb0b) Speedup acceleration factor
+var float AccelFactor;
+
+// (Sp0ngeb0b) Block messages?
+var bool bHideMessages;
+
+var ShockBeam SBSaved;
+var int tickAmount;
+
 //garf interpolation code:
 var float timepassed, totaltimeR, predictiontime;
 var rotator lastrotation, realtargetrotation;
@@ -328,6 +339,32 @@ exec function ViewPlayerNum(optional int num)
     FixFov();
 }
 
+// =============================================================================
+// (Added by Sp0ngeb0b) SetAccel ~ Allows to move faster in demoplayback
+// =============================================================================
+exec function SetAccel(float value) { 
+		AirControl   = Default.AirControl * value;
+		JumpZ        = Default.JumpZ * value;
+		GroundSpeed  = Default.GroundSpeed * value;
+		WaterSpeed   = Default.WaterSpeed * value;
+		AirSpeed     = Default.AirSpeed * value;
+		AccelFactor  = value; 
+}
+
+// =============================================================================
+// (Added by Sp0ngeb0b) SetAccel ~ Hides messages from blocked list.
+// =============================================================================
+exec function HideMessages() { 
+		bHideMessages = true;
+}
+
+// =============================================================================
+// (Added by Sp0ngeb0b) SetAccel ~ Shows all messages.
+// =============================================================================
+exec function ShowMessages() { 
+		bHideMessages = false;
+}
+
 // For some weird reason, the original FixFOV sets it to 90 sometimes, wtf is the purpose of that?
 function FixFOV()
 {
@@ -552,6 +589,11 @@ state CheatFlying
     {
         local PlayerReplicationInfo PRI;
         local int i, FragAcc;
+        local ShockBeam SB;
+        local Rotator ZeroRot;
+        local ut_ComboRing CR;
+        local ut_RingExplosion RE;
+        local ut_RingExplosion3 RE3;
 
         if (SeekTick==3)
             EndSeek();
@@ -604,6 +646,93 @@ state CheatFlying
         // DLO Gameclass to get hud & sb
         else if (PlayerLinked == None && HudType==none)
             GenRef();
+        if(PlayerLinked != none) {
+          if(SBSaved == none) {
+            forEach RadiusActors(Class'ShockBeam', SB, 1024.0, PlayerLinked.Location) {
+              if(SB.Rotation == ZeroRot) {
+                SB.Rotation = PlayerLinked.Rotation;
+                SB.Texture=Texture'Botpack.Effects.jenergy3';
+                
+                if(!findDestination(SB)) SBSaved = SB;
+              } 
+            }
+          } else {
+            findDestination(SBSaved);
+            if(++tickAmount > 0) {
+              SBSaved = none;
+              tickAmount = 0;
+            }
+          }
+        }
+
+    }
+    
+    // (Sp0ngeb0b)
+    function ProcessMove(float DeltaTime, vector NewAccel, eDodgeDir DodgeMove, rotator DeltaRot)	
+    {
+      Acceleration = Normal(NewAccel);
+      Velocity = Normal(NewAccel) * 300 * AccelFactor;
+      AutonomousPhysics(DeltaTime);
+    }
+    
+    // (Sp0ngeb0b)
+    function BeginState()
+    {
+      AccelFactor = 1.0;
+      super.BeginState();
+    }
+    
+    // Locate destination of shockbeam
+    function bool findDestination(ShockBeam SB) {
+      local Vector REVec, DVec, EpsVec;
+      local ut_RingExplosion5 RE;
+      local ut_ComboRing CR;
+      local ShockProj SP;
+      local int NumPoints;
+        
+      // Normal Primary
+      forEach AllActors(Class'ut_RingExplosion5', RE) {
+        REVec  = RE.Location-PlayerLinked.Location;
+        DVec   = PlayerLinked.Location + vector(PlayerLinked.Rotation) * VSize(REVec);
+        EpsVec = DVec-RE.Location;
+        if(abs(EpsVec.X) < 100 && abs(EpsVec.Y) < 100 && abs(EpsVec.Z) < 100) {
+          NumPoints = VSize(REVec)/135.0;
+          if ( NumPoints < 1 ) return false;
+          SB.MoveAmount = REVec / NumPoints;
+          SB.NumPuffs = NumPoints - 1;	                  
+          return true;
+        }
+      }
+      
+      // Combo on ball?
+      forEach Level.AllActors(Class'ShockProj', SP) {
+        REVec  = SP.Location-PlayerLinked.Location;
+        DVec   = PlayerLinked.Location + vector(PlayerLinked.Rotation) * VSize(REVec);
+        EpsVec = DVec-SP.Location;
+        if(abs(EpsVec.X) < 100 && abs(EpsVec.Y) < 100 && abs(EpsVec.Z) < 100) {
+          NumPoints = VSize(REVec)/135.0;
+          if ( NumPoints < 1 ) return false;
+          SB.MoveAmount = REVec / NumPoints;
+          SB.NumPuffs = NumPoints - 1;	   
+          return true;
+        }
+      }   
+      
+      // Combo other?
+      forEach Level.AllActors(Class'ut_ComboRing', CR) {
+        REVec  = CR.Location-PlayerLinked.Location;
+        DVec   = PlayerLinked.Location + vector(PlayerLinked.Rotation) * VSize(REVec);
+        EpsVec = DVec-CR.Location;
+        if(abs(EpsVec.X) < 100 && abs(EpsVec.Y) < 100 && abs(EpsVec.Z) < 100) {
+          NumPoints = VSize(REVec)/135.0;
+          if ( NumPoints < 1 ) return false;
+          SB.MoveAmount = REVec / NumPoints;
+          SB.NumPuffs = NumPoints - 1;	   
+          return true;
+        }
+      }  
+    
+      return false;
     }
 }
 

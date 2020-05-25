@@ -39,6 +39,9 @@ simulated function Message( PlayerReplicationInfo PRI, coerce string Msg, name M
 {
     local bool bIgnoreMessage;
 
+    // (Sp0ngeb0b)
+    if(Real.bHideMessages) return;
+          
     if (Real.myhud==none||Real.bSeeking)
         return;
     if (MsgType=='pickup'&&!Real.bLockOn&&Real.ViewTarget!=owner)
@@ -78,6 +81,10 @@ simulated function LocalizedMessage
     optional String CriticalString
 )
 {
+    // (Sp0ngeb0b)
+    if(Real.bHideMessages && class'DemoSettings'.static.isBlockedMessageClass(Message))
+      return;    
+      
     //let master filter decide validity!
     if (real.myHud != none
         && Real.CheckMessage(Message,Switch,RelatedPRI_1,RelatedPRI_2,OptionalObject)
